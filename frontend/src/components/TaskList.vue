@@ -1,59 +1,119 @@
 <template>
-  <div class="task-list">
-    <h1>タスク管理アプリ</h1>
+  <v-container>
+    <v-row justify="center">
+      <v-col cols="12" sm="10" md="8" lg="6">
+        <h1 class="text-center text-h4 mb-6">タスク管理アプリ</h1>
 
-    <!-- タスク追加フォーム -->
-    <div class="task-form">
-      <input
-        v-model="newTask.title"
-        placeholder="新しいタスクを入力..."
-        @keyup.enter="addTask"
-      />
-      <button @click="addTask">追加</button>
-    </div>
+        <!-- タスク追加フォーム -->
+        <v-form @submit.prevent="addTask" class="mb-6">
+          <v-row>
+            <v-col cols="9">
+              <v-text-field
+                v-model="newTask.title"
+                label="新しいタスクを入力..."
+                variant="outlined"
+                density="comfortable"
+                hide-details
+              ></v-text-field>
+            </v-col>
+            <v-col cols="3">
+              <v-btn color="primary" block height="56" @click="addTask">
+                追加
+              </v-btn>
+            </v-col>
+          </v-row>
+        </v-form>
 
-    <!-- タスク一覧 -->
-    <div v-if="loading" class="loading">読み込み中...</div>
-    <div v-else-if="tasks.length === 0" class="no-tasks">
-      タスクがありません。新しいタスクを追加してください。
-    </div>
-    <ul v-else class="tasks">
-      <li
-        v-for="task in tasks"
-        :key="task.id"
-        :class="{ completed: task.completed }"
-      >
-        <div class="task-content">
-          <input
-            type="checkbox"
-            :checked="task.completed"
-            @change="toggleTask(task)"
-          />
-          <span class="task-title">{{ task.title }}</span>
+        <!-- タスク一覧 -->
+        <div v-if="loading" class="text-center my-5">
+          <v-progress-circular
+            indeterminate
+            color="primary"
+          ></v-progress-circular>
+          <div class="mt-2">読み込み中...</div>
         </div>
-        <div class="task-actions">
-          <button @click="editTask(task)" class="edit">編集</button>
-          <button @click="deleteTask(task.id)" class="delete">削除</button>
-        </div>
-      </li>
-    </ul>
+        <v-alert v-else-if="tasks.length === 0" type="info" class="my-5">
+          タスクがありません。新しいタスクを追加してください。
+        </v-alert>
+        <v-list v-else class="bg-transparent">
+          <v-list-item
+            v-for="task in tasks"
+            :key="task.id"
+            :class="task.completed ? 'bg-grey-lighten-3' : ''"
+            rounded="lg"
+            class="mb-3"
+          >
+            <template v-slot:prepend>
+              <v-checkbox
+                v-model="task.completed"
+                @change="toggleTask(task)"
+                hide-details
+                color="primary"
+              ></v-checkbox>
+            </template>
+            <v-list-item-title
+              :class="{
+                'text-decoration-line-through': task.completed,
+                'text-grey': task.completed,
+              }"
+            >
+              {{ task.title }}
+            </v-list-item-title>
+            <template v-slot:append>
+              <v-btn
+                icon
+                variant="text"
+                color="primary"
+                size="small"
+                @click="editTask(task)"
+              >
+                <v-icon>mdi-pencil</v-icon>
+              </v-btn>
+              <v-btn
+                icon
+                variant="text"
+                color="error"
+                size="small"
+                @click="deleteTask(task.id)"
+              >
+                <v-icon>mdi-delete</v-icon>
+              </v-btn>
+            </template>
+          </v-list-item>
+        </v-list>
 
-    <!-- タスク編集モーダル -->
-    <div v-if="editMode" class="modal">
-      <div class="modal-content">
-        <h2>タスクの編集</h2>
-        <input v-model="editedTask.title" placeholder="タスク名" />
-        <textarea
-          v-model="editedTask.description"
-          placeholder="詳細説明（任意）"
-        ></textarea>
-        <div class="modal-actions">
-          <button @click="updateTask" class="save">保存</button>
-          <button @click="cancelEdit" class="cancel">キャンセル</button>
-        </div>
-      </div>
-    </div>
-  </div>
+        <!-- タスク編集ダイアログ -->
+        <v-dialog v-model="editMode" max-width="500px">
+          <v-card v-if="editedTask">
+            <v-card-title>タスクの編集</v-card-title>
+            <v-card-text>
+              <v-text-field
+                v-model="editedTask.title"
+                label="タスク名"
+                variant="outlined"
+                class="mb-4"
+              ></v-text-field>
+              <v-textarea
+                v-model="editedTask.description"
+                label="詳細説明（任意）"
+                variant="outlined"
+                rows="4"
+              ></v-textarea>
+            </v-card-text>
+            <v-card-actions>
+              <v-spacer></v-spacer>
+              <v-btn color="error" variant="text" @click="cancelEdit">
+                キャンセル
+              </v-btn>
+              <v-btn color="primary" variant="text" @click="updateTask">
+                保存
+              </v-btn>
+            </v-card-actions>
+          </v-card>
+        </v-dialog>
+      </v-col>
+    </v-row>
+  </v-container>
 </template>
 
 <script>
@@ -109,12 +169,14 @@ export default {
 
     // タスクの完了状態の切り替え
     toggleTask(task) {
-      const newStatus = !task.completed;
+      const newStatus = task.completed;
       TaskService.toggleComplete(task.id, newStatus)
         .then(() => {
-          task.completed = newStatus;
+          // APIで更新が成功すれば、UIの状態は既に更新されている
         })
         .catch((error) => {
+          // エラーの場合は元に戻す
+          task.completed = !newStatus;
           console.error("タスクの更新中にエラーが発生しました:", error);
         });
     },
@@ -127,7 +189,16 @@ export default {
 
     // タスクの更新
     updateTask() {
-      if (!this.editedTask.title.trim()) return;
+      // nullチェックを追加
+      if (!this.editedTask) {
+        console.error("編集中のタスクがnullです");
+        this.editMode = false;
+        return;
+      }
+
+      if (!this.editedTask.title || !this.editedTask.title.trim()) {
+        return;
+      }
 
       TaskService.updateTask(this.editedTask.id, this.editedTask)
         .then((response) => {
@@ -137,18 +208,23 @@ export default {
           if (index !== -1) {
             this.tasks.splice(index, 1, response.data);
           }
-          this.editMode = false;
+
+          // 未使用の変数宣言を削除し、順序を維持
           this.editedTask = null;
+          this.editMode = false;
         })
         .catch((error) => {
           console.error("タスクの更新中にエラーが発生しました:", error);
+          this.editedTask = null;
+          this.editMode = false;
         });
     },
 
     // 編集モードのキャンセル
     cancelEdit() {
-      this.editMode = false;
+      // 順序を変更
       this.editedTask = null;
+      this.editMode = false;
     },
 
     // タスクの削除
@@ -166,158 +242,3 @@ export default {
   },
 };
 </script>
-
-<style scoped>
-.task-list {
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 20px;
-}
-
-h1 {
-  text-align: center;
-  margin-bottom: 30px;
-}
-
-.task-form {
-  display: flex;
-  margin-bottom: 20px;
-}
-
-.task-form input {
-  flex: 1;
-  padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 4px 0 0 4px;
-}
-
-.task-form button {
-  padding: 10px 15px;
-  background-color: #4caf50;
-  color: white;
-  border: none;
-  border-radius: 0 4px 4px 0;
-  cursor: pointer;
-}
-
-.tasks {
-  list-style: none;
-  padding: 0;
-}
-
-.tasks li {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px 15px;
-  background-color: #f9f9f9;
-  border-radius: 4px;
-  margin-bottom: 10px;
-  border-left: 4px solid #4caf50;
-}
-
-.tasks li.completed {
-  border-left-color: #999;
-  opacity: 0.7;
-}
-
-.tasks li.completed .task-title {
-  text-decoration: line-through;
-  color: #777;
-}
-
-.task-content {
-  display: flex;
-  align-items: center;
-}
-
-.task-title {
-  margin-left: 10px;
-}
-
-.task-actions button {
-  margin-left: 5px;
-  padding: 5px 10px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.task-actions .edit {
-  background-color: #2196f3;
-  color: white;
-}
-
-.task-actions .delete {
-  background-color: #f44336;
-  color: white;
-}
-
-.loading,
-.no-tasks {
-  text-align: center;
-  margin: 20px 0;
-  color: #777;
-}
-
-/* モーダルスタイル */
-.modal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-.modal-content {
-  background-color: white;
-  padding: 20px;
-  border-radius: 4px;
-  width: 80%;
-  max-width: 500px;
-}
-
-.modal-content h2 {
-  margin-top: 0;
-}
-
-.modal-content input,
-.modal-content textarea {
-  width: 100%;
-  padding: 10px;
-  margin-bottom: 10px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-}
-
-.modal-content textarea {
-  min-height: 100px;
-}
-
-.modal-actions {
-  display: flex;
-  justify-content: flex-end;
-}
-
-.modal-actions button {
-  margin-left: 10px;
-  padding: 8px 15px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.modal-actions .save {
-  background-color: #4caf50;
-  color: white;
-}
-
-.modal-actions .cancel {
-  background-color: #f44336;
-  color: white;
-}
-</style>
