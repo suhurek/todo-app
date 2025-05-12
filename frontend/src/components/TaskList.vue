@@ -36,81 +36,24 @@
           タスクがありません。新しいタスクを追加してください。
         </v-alert>
         <v-list v-else class="bg-transparent">
-          <v-list-item
+          <task-item
             v-for="task in tasks"
             :key="task.id"
-            :class="task.completed ? 'bg-grey-lighten-3' : ''"
-            rounded="lg"
-            class="mb-3"
-          >
-            <template v-slot:prepend>
-              <v-checkbox
-                v-model="task.completed"
-                @change="toggleTask(task)"
-                hide-details
-                color="primary"
-              ></v-checkbox>
-            </template>
-            <v-list-item-title
-              :class="{
-                'text-decoration-line-through': task.completed,
-                'text-grey': task.completed,
-              }"
-            >
-              {{ task.title }}
-            </v-list-item-title>
-            <template v-slot:append>
-              <v-btn
-                icon
-                variant="text"
-                color="primary"
-                size="small"
-                @click="editTask(task)"
-              >
-                <v-icon>mdi-pencil</v-icon>
-              </v-btn>
-              <v-btn
-                icon
-                variant="text"
-                color="error"
-                size="small"
-                @click="deleteTask(task.id)"
-              >
-                <v-icon>mdi-delete</v-icon>
-              </v-btn>
-            </template>
-          </v-list-item>
+            :task="task"
+            @toggle-complete="handleToggleComplete"
+            @edit="editTask"
+            @delete="deleteTask"
+          ></task-item>
         </v-list>
 
         <!-- タスク編集ダイアログ -->
-        <v-dialog v-model="editMode" max-width="500px">
-          <v-card v-if="editedTask">
-            <v-card-title>タスクの編集</v-card-title>
-            <v-card-text>
-              <v-text-field
-                v-model="editedTask.title"
-                label="タスク名"
-                variant="outlined"
-                class="mb-4"
-              ></v-text-field>
-              <v-textarea
-                v-model="editedTask.description"
-                label="詳細説明（任意）"
-                variant="outlined"
-                rows="4"
-              ></v-textarea>
-            </v-card-text>
-            <v-card-actions>
-              <v-spacer></v-spacer>
-              <v-btn color="error" variant="text" @click="cancelEdit">
-                キャンセル
-              </v-btn>
-              <v-btn color="primary" variant="text" @click="updateTask">
-                保存
-              </v-btn>
-            </v-card-actions>
-          </v-card>
-        </v-dialog>
+        <task-edit-dialog
+          :task="editedTask"
+          :visible="editMode"
+          @update:visible="editMode = $event"
+          @save="updateTask"
+          @cancel="cancelEdit"
+        ></task-edit-dialog>
       </v-col>
     </v-row>
   </v-container>
@@ -118,9 +61,15 @@
 
 <script>
 import TaskService from "@/services/TaskService";
+import TaskItem from "@/components/TaskItem.vue";
+import TaskEditDialog from "@/components/TaskEditDialog.vue";
 
 export default {
   name: "TaskList",
+  components: {
+    TaskItem,
+    TaskEditDialog,
+  },
   data() {
     return {
       tasks: [],
@@ -168,63 +117,52 @@ export default {
     },
 
     // タスクの完了状態の切り替え
-    toggleTask(task) {
-      const newStatus = task.completed;
-      TaskService.toggleComplete(task.id, newStatus)
+    handleToggleComplete(data) {
+      TaskService.toggleComplete(data.id, data.completed)
         .then(() => {
-          // APIで更新が成功すれば、UIの状態は既に更新されている
+          const task = this.tasks.find((t) => t.id === data.id);
+          if (task) {
+            task.completed = data.completed;
+          }
         })
         .catch((error) => {
-          // エラーの場合は元に戻す
-          task.completed = !newStatus;
           console.error("タスクの更新中にエラーが発生しました:", error);
+          // エラーの場合は元に戻す
+          const task = this.tasks.find((t) => t.id === data.id);
+          if (task) {
+            task.completed = !data.completed;
+          }
         });
     },
 
     // タスクの編集モード開始
     editTask(task) {
-      this.editedTask = { ...task };
+      this.editedTask = task;
       this.editMode = true;
     },
 
     // タスクの更新
-    updateTask() {
-      // nullチェックを追加
-      if (!this.editedTask) {
-        console.error("編集中のタスクがnullです");
-        this.editMode = false;
-        return;
-      }
+    updateTask(updatedTask) {
+      if (!updatedTask || !updatedTask.title.trim()) return;
 
-      if (!this.editedTask.title || !this.editedTask.title.trim()) {
-        return;
-      }
-
-      TaskService.updateTask(this.editedTask.id, this.editedTask)
+      TaskService.updateTask(updatedTask.id, updatedTask)
         .then((response) => {
-          const index = this.tasks.findIndex(
-            (t) => t.id === this.editedTask.id
-          );
+          const index = this.tasks.findIndex((t) => t.id === updatedTask.id);
           if (index !== -1) {
             this.tasks.splice(index, 1, response.data);
           }
-
-          // 未使用の変数宣言を削除し、順序を維持
-          this.editedTask = null;
           this.editMode = false;
+          this.editedTask = null;
         })
         .catch((error) => {
           console.error("タスクの更新中にエラーが発生しました:", error);
-          this.editedTask = null;
-          this.editMode = false;
         });
     },
 
     // 編集モードのキャンセル
     cancelEdit() {
-      // 順序を変更
-      this.editedTask = null;
       this.editMode = false;
+      this.editedTask = null;
     },
 
     // タスクの削除
