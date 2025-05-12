@@ -24,6 +24,31 @@
           </v-row>
         </v-form>
 
+        <!-- フィルターコントロール（新規追加） -->
+        <v-card class="mb-6">
+          <v-card-text>
+            <v-row align="center">
+              <v-col cols="12" sm="6">
+                <span class="text-subtitle-1">フィルター:</span>
+              </v-col>
+              <v-col cols="12" sm="6">
+                <v-btn-toggle
+                  v-model="filter"
+                  mandatory
+                  color="primary"
+                  variant="outlined"
+                  rounded
+                  density="comfortable"
+                >
+                  <v-btn value="all">すべて</v-btn>
+                  <v-btn value="active">未完了</v-btn>
+                  <v-btn value="completed">完了済み</v-btn>
+                </v-btn-toggle>
+              </v-col>
+            </v-row>
+          </v-card-text>
+        </v-card>
+
         <!-- タスク一覧 -->
         <div v-if="loading" class="text-center my-5">
           <v-progress-circular
@@ -32,12 +57,16 @@
           ></v-progress-circular>
           <div class="mt-2">読み込み中...</div>
         </div>
-        <v-alert v-else-if="tasks.length === 0" type="info" class="my-5">
-          タスクがありません。新しいタスクを追加してください。
+        <v-alert
+          v-else-if="filteredTasks.length === 0"
+          type="info"
+          class="my-5"
+        >
+          {{ filterEmptyMessage }}
         </v-alert>
         <v-list v-else class="bg-transparent">
           <task-item
-            v-for="task in tasks"
+            v-for="task in filteredTasks"
             :key="task.id"
             :task="task"
             @toggle-complete="handleToggleComplete"
@@ -81,7 +110,32 @@ export default {
       },
       editMode: false,
       editedTask: null,
+      filter: "all", // フィルター状態
     };
+  },
+  computed: {
+    // フィルター適用後のタスク一覧
+    filteredTasks() {
+      switch (this.filter) {
+        case "active":
+          return this.tasks.filter((task) => !task.completed);
+        case "completed":
+          return this.tasks.filter((task) => task.completed);
+        default:
+          return this.tasks;
+      }
+    },
+    // フィルター状態に応じた空メッセージ
+    filterEmptyMessage() {
+      switch (this.filter) {
+        case "active":
+          return "未完了のタスクがありません。";
+        case "completed":
+          return "完了済みのタスクがありません。";
+        default:
+          return "タスクがありません。新しいタスクを追加してください。";
+      }
+    },
   },
   created() {
     this.fetchTasks();
