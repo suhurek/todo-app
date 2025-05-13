@@ -24,6 +24,9 @@
           </v-row>
         </v-form>
 
+        <!-- カテゴリ管理コンポーネントを追加 -->
+        <category-manager class="mb-6"></category-manager>
+
         <!-- フィルターコントロール（新規追加） -->
         <v-card class="mb-6">
           <v-card-text>
@@ -92,12 +95,14 @@
 import TaskService from "@/services/TaskService";
 import TaskItem from "@/components/TaskItem.vue";
 import TaskEditDialog from "@/components/TaskEditDialog.vue";
+import CategoryManager from "@/components/CategoryManager.vue";
 
 export default {
   name: "TaskList",
   components: {
     TaskItem,
     TaskEditDialog,
+    CategoryManager,
   },
   data() {
     return {

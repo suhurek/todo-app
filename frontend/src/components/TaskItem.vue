@@ -12,6 +12,7 @@
         color="primary"
       ></v-checkbox>
     </template>
+
     <v-list-item-title
       :class="{
         'text-decoration-line-through': task.completed,
@@ -20,6 +21,14 @@
     >
       {{ task.title }}
     </v-list-item-title>
+
+    <!-- カテゴリ表示を追加 -->
+    <v-list-item-subtitle v-if="task.category">
+      <v-chip :color="task.category.color" size="small" label class="mt-1">
+        {{ task.category.name }}
+      </v-chip>
+    </v-list-item-subtitle>
+
     <template v-slot:append>
       <v-btn
         icon
