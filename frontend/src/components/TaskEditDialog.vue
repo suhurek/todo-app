@@ -56,10 +56,27 @@
                   :active="taskData.category_id === null"
                 >
                   <template v-slot:prepend>
-                    <v-icon v-if="taskData.category_id === null">
-                      mdi-check
-                    </v-icon>
-                    <div v-else style="width: 24px"></div>
+                    <div class="position-relative d-flex align-center">
+                      <div
+                        :style="{
+                          backgroundColor: 'grey',
+                          opacity: 0.3,
+                          width: '24px',
+                          height: '24px',
+                          display: 'inline-block',
+                          borderRadius: '50%',
+                          marginRight: '8px',
+                        }"
+                      ></div>
+                      <v-icon
+                        v-if="taskData.category_id === null"
+                        size="x-small"
+                        color="white"
+                        class="category-check-icon"
+                      >
+                        mdi-check
+                      </v-icon>
+                    </div>
                   </template>
                   <v-list-item-title>カテゴリなし</v-list-item-title>
                 </v-list-item>
@@ -71,19 +88,26 @@
                   :active="taskData.category_id === category.id"
                 >
                   <template v-slot:prepend>
-                    <v-icon v-if="taskData.category_id === category.id">
-                      mdi-check
-                    </v-icon>
-                    <div
-                      v-else
-                      :style="{
-                        backgroundColor: category.color,
-                        width: '24px',
-                        height: '24px',
-                        display: 'inline-block',
-                        borderRadius: '50%',
-                      }"
-                    ></div>
+                    <div class="position-relative d-flex align-center">
+                      <div
+                        :style="{
+                          backgroundColor: category.color,
+                          width: '24px',
+                          height: '24px',
+                          display: 'inline-block',
+                          borderRadius: '50%',
+                          marginRight: '8px',
+                        }"
+                      ></div>
+                      <v-icon
+                        v-if="taskData.category_id === category.id"
+                        size="x-small"
+                        color="white"
+                        class="category-check-icon"
+                      >
+                        mdi-check
+                      </v-icon>
+                    </div>
                   </template>
                   <v-list-item-title>{{ category.name }}</v-list-item-title>
                 </v-list-item>
@@ -221,3 +245,16 @@ export default {
   },
 };
 </script>
+
+<style scoped>
+.position-relative {
+  position: relative;
+}
+
+.category-check-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+</style>
