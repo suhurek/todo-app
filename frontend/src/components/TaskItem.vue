@@ -23,10 +23,30 @@
     </v-list-item-title>
 
     <!-- カテゴリ表示を追加 -->
-    <v-list-item-subtitle v-if="task.category">
-      <v-chip :color="task.category.color" size="small" label class="mt-1">
-        {{ task.category.name }}
-      </v-chip>
+    <v-list-item-subtitle>
+      <v-row no-gutters>
+        <v-col cols="auto" v-if="task.category">
+          <v-chip
+            :color="task.category.color"
+            size="small"
+            label
+            class="mt-1 mr-2"
+          >
+            {{ task.category.name }}
+          </v-chip>
+        </v-col>
+        <v-col cols="auto">
+          <v-chip
+            :color="priorityColor"
+            size="small"
+            label
+            class="mt-1"
+            :prepend-icon="priorityIcon"
+          >
+            {{ priorityLabel }}
+          </v-chip>
+        </v-col>
+      </v-row>
     </v-list-item-subtitle>
 
     <template v-slot:append>
@@ -65,6 +85,44 @@ export default {
     return {
       localCompleted: this.task.completed,
     };
+  },
+  computed: {
+    priorityColor() {
+      switch (this.task.priority) {
+        case "high":
+          return "error";
+        case "medium":
+          return "warning";
+        case "low":
+          return "success";
+        default:
+          return "warning"; // デフォルトは medium
+      }
+    },
+    priorityIcon() {
+      switch (this.task.priority) {
+        case "high":
+          return "mdi-alert-circle";
+        case "medium":
+          return "mdi-minus-circle";
+        case "low":
+          return "mdi-chevron-down-circle";
+        default:
+          return "mdi-minus-circle"; // デフォルトは medium
+      }
+    },
+    priorityLabel() {
+      switch (this.task.priority) {
+        case "high":
+          return "高";
+        case "medium":
+          return "中";
+        case "low":
+          return "低";
+        default:
+          return "中"; // デフォルトは medium
+      }
+    },
   },
   watch: {
     "task.completed"(newVal) {

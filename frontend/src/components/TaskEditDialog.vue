@@ -115,6 +115,36 @@
             </v-card>
           </v-menu>
         </div>
+
+        <!-- 優先度選択 -->
+        <div class="mb-4">
+          <label class="text-subtitle-1 mb-2 d-block">優先度</label>
+          <v-btn-toggle
+            v-model="taskData.priority"
+            mandatory
+            density="comfortable"
+            color="primary"
+            variant="outlined"
+          >
+            <v-btn value="high" prepend-icon="mdi-alert-circle" color="error">
+              高
+            </v-btn>
+            <v-btn
+              value="medium"
+              prepend-icon="mdi-minus-circle"
+              color="warning"
+            >
+              中
+            </v-btn>
+            <v-btn
+              value="low"
+              prepend-icon="mdi-chevron-down-circle"
+              color="success"
+            >
+              低
+            </v-btn>
+          </v-btn-toggle>
+        </div>
       </v-card-text>
       <v-card-actions>
         <v-spacer></v-spacer>
@@ -186,6 +216,12 @@ export default {
         // category_idを追加してディープコピーを作成
         const taskCopy = JSON.parse(JSON.stringify(newTask));
         taskCopy.category_id = newTask.category ? newTask.category.id : null;
+
+        // デフォルトの優先度を設定
+        if (!taskCopy.priority) {
+          taskCopy.priority = "medium";
+        }
+
         this.taskData = taskCopy;
       } else {
         this.taskData = null;
@@ -199,6 +235,12 @@ export default {
           taskCopy.category_id = this.task.category
             ? this.task.category.id
             : null;
+
+          // デフォルトの優先度を設定
+          if (!taskCopy.priority) {
+            taskCopy.priority = "medium";
+          }
+
           this.taskData = taskCopy;
         }
       }

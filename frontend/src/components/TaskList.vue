@@ -49,6 +49,25 @@
                 </v-btn-toggle>
               </v-col>
             </v-row>
+            <v-row align="center" class="mt-3">
+              <v-col cols="12" sm="6">
+                <span class="text-subtitle-1">優先度:</span>
+              </v-col>
+              <v-col cols="12" sm="6">
+                <v-btn-toggle
+                  v-model="priorityFilter"
+                  color="primary"
+                  variant="outlined"
+                  rounded
+                  density="comfortable"
+                  multiple
+                >
+                  <v-btn value="high">高</v-btn>
+                  <v-btn value="medium">中</v-btn>
+                  <v-btn value="low">低</v-btn>
+                </v-btn-toggle>
+              </v-col>
+            </v-row>
           </v-card-text>
         </v-card>
 
@@ -112,23 +131,37 @@ export default {
         title: "",
         description: "",
         completed: false,
+        priority: "medium",
       },
       editMode: false,
       editedTask: null,
       filter: "all", // フィルター状態
+      priorityFilter: [],
     };
   },
   computed: {
     // フィルター適用後のタスク一覧
     filteredTasks() {
+      let result = [...this.tasks];
+
+      // ステータスフィルター（完了/未完了）
       switch (this.filter) {
         case "active":
-          return this.tasks.filter((task) => !task.completed);
+          result = result.filter((task) => !task.completed);
+          break;
         case "completed":
-          return this.tasks.filter((task) => task.completed);
-        default:
-          return this.tasks;
+          result = result.filter((task) => task.completed);
+          break;
       }
+
+      // 優先度フィルター
+      if (this.priorityFilter.length > 0) {
+        result = result.filter((task) =>
+          this.priorityFilter.includes(task.priority)
+        );
+      }
+
+      return result;
     },
     // フィルター状態に応じた空メッセージ
     filterEmptyMessage() {
