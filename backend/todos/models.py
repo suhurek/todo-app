@@ -9,6 +9,12 @@ class Category(models.Model):
         return self.name
 
 class Task(models.Model):
+    PRIORITY_CHOICES = [
+        ('high', '高'),
+        ('medium', '中'),
+        ('low', '低'),
+    ]
+    
     title = models.CharField(max_length=200)
     description = models.TextField(blank=True)
     completed = models.BooleanField(default=False)
@@ -20,6 +26,11 @@ class Task(models.Model):
         null=True, 
         blank=True, 
         related_name='tasks'
+    )
+    priority = models.CharField(
+        max_length=10, 
+        choices=PRIORITY_CHOICES, 
+        default='medium'
     )
     
     def __str__(self):
