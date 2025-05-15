@@ -68,6 +68,25 @@
                 </v-btn-toggle>
               </v-col>
             </v-row>
+            <v-row align="center" class="mt-3">
+              <v-col cols="12" sm="6">
+                <span class="text-subtitle-1">期日:</span>
+              </v-col>
+              <v-col cols="12" sm="6">
+                <v-btn-toggle
+                  v-model="dueDateFilter"
+                  color="primary"
+                  variant="outlined"
+                  rounded
+                  density="comfortable"
+                >
+                  <v-btn value="all">すべて</v-btn>
+                  <v-btn value="today">今日</v-btn>
+                  <v-btn value="upcoming">今後</v-btn>
+                  <v-btn value="overdue">期限超過</v-btn>
+                </v-btn-toggle>
+              </v-col>
+            </v-row>
           </v-card-text>
         </v-card>
 
@@ -132,11 +151,14 @@ export default {
         description: "",
         completed: false,
         priority: "medium",
+        repeat_type: "none",
+        repeat_interval: 1,
       },
       editMode: false,
       editedTask: null,
       filter: "all", // フィルター状態
       priorityFilter: [],
+      dueDateFilter: "all",
     };
   },
   computed: {
@@ -159,6 +181,37 @@ export default {
         result = result.filter((task) =>
           this.priorityFilter.includes(task.priority)
         );
+      }
+
+      // 期日フィルター
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      switch (this.dueDateFilter) {
+        case "today":
+          result = result.filter((task) => {
+            if (!task.due_date) return false;
+            const dueDate = new Date(task.due_date);
+            dueDate.setHours(0, 0, 0, 0);
+            return dueDate.getTime() === today.getTime();
+          });
+          break;
+        case "upcoming":
+          result = result.filter((task) => {
+            if (!task.due_date) return false;
+            const dueDate = new Date(task.due_date);
+            dueDate.setHours(0, 0, 0, 0);
+            return dueDate > today;
+          });
+          break;
+        case "overdue":
+          result = result.filter((task) => {
+            if (!task.due_date || task.completed) return false;
+            const dueDate = new Date(task.due_date);
+            dueDate.setHours(0, 0, 0, 0);
+            return dueDate < today;
+          });
+          break;
       }
 
       return result;
@@ -210,11 +263,31 @@ export default {
 
     // タスクの完了状態の切り替え
     handleToggleComplete(data) {
-      TaskService.toggleComplete(data.id, data.completed)
-        .then(() => {
+      // タスクを検索
+      const task = this.tasks.find((t) => t.id === data.id);
+      if (!task) return;
+
+      // 繰り返しタスクかどうかを確認
+      const isRecurring =
+        task.repeat_type && task.repeat_type !== "none" && task.due_date;
+
+      // 適切なメソッドを選択
+      const serviceMethod = isRecurring
+        ? TaskService.completeRecurringTask
+        : TaskService.toggleComplete;
+
+      // APIリクエスト実行
+      serviceMethod(data.id, data.completed)
+        .then((response) => {
+          // タスクの完了状態を更新
           const task = this.tasks.find((t) => t.id === data.id);
           if (task) {
             task.completed = data.completed;
+          }
+
+          // 新しい繰り返しタスクが作成された場合、リストに追加
+          if (response.data.next_task) {
+            this.tasks.unshift(response.data.next_task);
           }
         })
         .catch((error) => {

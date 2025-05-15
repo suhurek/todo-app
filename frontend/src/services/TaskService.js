@@ -32,4 +32,11 @@ export default {
   toggleComplete(id, status) {
     return axios.patch(`${API_URL}tasks/${id}/`, { completed: status });
   },
+
+  // 繰り返しタスク用：タスクを完了にして次の繰り返しを生成
+  completeRecurringTask(id, status) {
+    return axios.patch(`${API_URL}tasks/${id}/toggle_complete/`, {
+      completed: status,
+    });
+  },
 };

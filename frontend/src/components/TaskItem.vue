@@ -46,6 +46,28 @@
             {{ priorityLabel }}
           </v-chip>
         </v-col>
+        <v-col cols="12" class="mt-1" v-if="task.due_date">
+          <v-chip
+            size="small"
+            prepend-icon="mdi-calendar"
+            :color="isOverdue ? 'error' : 'info'"
+            variant="outlined"
+            class="mr-2"
+          >
+            {{ formattedDueDate }}
+          </v-chip>
+
+          <!-- 繰り返し表示 -->
+          <v-chip
+            v-if="task.repeat_type !== 'none'"
+            size="small"
+            prepend-icon="mdi-refresh"
+            color="secondary"
+            variant="outlined"
+          >
+            {{ repeatLabel }}
+          </v-chip>
+        </v-col>
       </v-row>
     </v-list-item-subtitle>
 
@@ -73,6 +95,9 @@
 </template>
 
 <script>
+import { format, isPast, isToday } from "date-fns";
+import { ja } from "date-fns/locale";
+
 export default {
   name: "TaskItem",
   props: {
@@ -121,6 +146,35 @@ export default {
           return "低";
         default:
           return "中"; // デフォルトは medium
+      }
+    },
+    formattedDueDate() {
+      if (!this.task.due_date) return "";
+      try {
+        return format(new Date(this.task.due_date), "yyyy/MM/dd(E)", {
+          locale: ja,
+        });
+      } catch (e) {
+        return "";
+      }
+    },
+    isOverdue() {
+      if (!this.task.due_date || this.task.completed) return false;
+      const dueDate = new Date(this.task.due_date);
+      return isPast(dueDate) && !isToday(dueDate);
+    },
+    repeatLabel() {
+      switch (this.task.repeat_type) {
+        case "daily":
+          return "毎日";
+        case "weekly":
+          return "毎週";
+        case "monthly":
+          return "毎月";
+        case "custom":
+          return `${this.task.repeat_interval}日ごと`;
+        default:
+          return "";
       }
     },
   },

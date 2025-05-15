@@ -145,6 +145,86 @@
             </v-btn>
           </v-btn-toggle>
         </div>
+
+        <!-- 期日設定 -->
+        <div class="mb-4">
+          <label class="text-subtitle-1 mb-2 d-block">期日</label>
+          <v-menu
+            v-model="dateMenu"
+            :close-on-content-click="false"
+            location="bottom"
+          >
+            <template v-slot:activator="{ props }">
+              <v-text-field
+                v-model="formattedDueDate"
+                label="期日を選択"
+                readonly
+                prepend-icon="mdi-calendar"
+                v-bind="props"
+                variant="outlined"
+                clearable
+                clear-icon="mdi-close-circle"
+                @click:clear="taskData.due_date = null"
+              ></v-text-field>
+            </template>
+            <v-date-picker
+              v-model="taskData.due_date"
+              @update:model-value="dateMenu = false"
+            ></v-date-picker>
+          </v-menu>
+        </div>
+
+        <!-- 繰り返し設定 -->
+        <div class="mb-4">
+          <label class="text-subtitle-1 mb-2 d-block">繰り返し</label>
+          <v-select
+            v-model="taskData.repeat_type"
+            :items="repeatOptions"
+            label="繰り返しの種類"
+            variant="outlined"
+            hide-details
+            item-title="text"
+            item-value="value"
+          ></v-select>
+
+          <!-- カスタム繰り返し間隔設定 -->
+          <div v-if="taskData.repeat_type === 'custom'" class="mt-3">
+            <v-row>
+              <v-col cols="6">
+                <v-text-field
+                  v-model.number="taskData.repeat_interval"
+                  label="間隔"
+                  type="number"
+                  min="1"
+                  variant="outlined"
+                  hide-details
+                ></v-text-field>
+              </v-col>
+              <v-col cols="6">
+                <v-select
+                  :value="'days'"
+                  :items="[{ text: '日ごと', value: 'days' }]"
+                  variant="outlined"
+                  hide-details
+                  disabled
+                  item-title="text"
+                  item-value="value"
+                ></v-select>
+              </v-col>
+            </v-row>
+          </div>
+
+          <!-- 繰り返し設定の注意事項 -->
+          <v-alert
+            v-if="taskData.repeat_type !== 'none' && !taskData.due_date"
+            type="warning"
+            variant="tonal"
+            class="mt-3"
+            density="compact"
+          >
+            繰り返しタスクを作成するには期日の設定が必要です
+          </v-alert>
+        </div>
       </v-card-text>
       <v-card-actions>
         <v-spacer></v-spacer>
@@ -157,6 +237,8 @@
 
 <script>
 import CategoryService from "@/services/CategoryService";
+import { format } from "date-fns";
+import { ja } from "date-fns/locale";
 
 export default {
   name: "TaskEditDialog",
@@ -176,6 +258,14 @@ export default {
       categories: [],
       loadingCategories: false,
       categoryMenuOpen: false,
+      dateMenu: false,
+      repeatOptions: [
+        { text: "繰り返しなし", value: "none" },
+        { text: "毎日", value: "daily" },
+        { text: "毎週", value: "weekly" },
+        { text: "毎月", value: "monthly" },
+        { text: "カスタム", value: "custom" },
+      ],
     };
   },
   computed: {
@@ -209,6 +299,16 @@ export default {
         null
       );
     },
+    formattedDueDate() {
+      if (!this.taskData || !this.taskData.due_date) return "";
+      try {
+        return format(new Date(this.taskData.due_date), "yyyy年MM月dd日(E)", {
+          locale: ja,
+        });
+      } catch (e) {
+        return "";
+      }
+    },
   },
   watch: {
     task(newTask) {
@@ -220,6 +320,15 @@ export default {
         // デフォルトの優先度を設定
         if (!taskCopy.priority) {
           taskCopy.priority = "medium";
+        }
+
+        // 繰り返し関連の設定
+        if (!taskCopy.repeat_type) {
+          taskCopy.repeat_type = "none";
+        }
+
+        if (!taskCopy.repeat_interval || taskCopy.repeat_interval < 1) {
+          taskCopy.repeat_interval = 1;
         }
 
         this.taskData = taskCopy;
@@ -239,6 +348,15 @@ export default {
           // デフォルトの優先度を設定
           if (!taskCopy.priority) {
             taskCopy.priority = "medium";
+          }
+
+          // 繰り返し関連の設定も初期化
+          if (!taskCopy.repeat_type) {
+            taskCopy.repeat_type = "none";
+          }
+
+          if (!taskCopy.repeat_interval || taskCopy.repeat_interval < 1) {
+            taskCopy.repeat_interval = 1;
           }
 
           this.taskData = taskCopy;
