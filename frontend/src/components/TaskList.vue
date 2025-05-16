@@ -106,14 +106,44 @@
           {{ filterEmptyMessage }}
         </v-alert>
         <v-list v-else class="bg-transparent">
-          <task-item
-            v-for="task in filteredTasks"
-            :key="task.id"
-            :task="task"
-            @toggle-complete="handleToggleComplete"
-            @edit="editTask"
-            @delete="deleteTask"
-          ></task-item>
+          <draggable
+            v-model="sortableTasks"
+            item-key="id"
+            ghost-class="ghost-task"
+            handle=".drag-handle"
+            :disabled="
+              loading ||
+              filter !== 'all' ||
+              priorityFilter.length > 0 ||
+              dueDateFilter !== 'all'
+            "
+            @end="onDragEnd"
+          >
+            <template #item="{ element }">
+              <task-item
+                :task="element"
+                @toggle-complete="handleToggleComplete"
+                @edit="editTask"
+                @delete="deleteTask"
+              >
+                <template #prepend>
+                  <v-icon
+                    class="drag-handle mr-2"
+                    size="small"
+                    :color="
+                      filter === 'all' &&
+                      priorityFilter.length === 0 &&
+                      dueDateFilter === 'all'
+                        ? 'grey'
+                        : 'grey-lighten-2'
+                    "
+                  >
+                    mdi-drag
+                  </v-icon>
+                </template>
+              </task-item>
+            </template>
+          </draggable>
         </v-list>
 
         <!-- タスク編集ダイアログ -->
@@ -134,6 +164,7 @@ import TaskService from "@/services/TaskService";
 import TaskItem from "@/components/TaskItem.vue";
 import TaskEditDialog from "@/components/TaskEditDialog.vue";
 import CategoryManager from "@/components/CategoryManager.vue";
+import draggable from "vuedraggable";
 
 export default {
   name: "TaskList",
@@ -141,6 +172,7 @@ export default {
     TaskItem,
     TaskEditDialog,
     CategoryManager,
+    draggable,
   },
   data() {
     return {
@@ -227,6 +259,13 @@ export default {
           return "タスクがありません。新しいタスクを追加してください。";
       }
     },
+    // ドラッグ&ドロップ用のソータブルタスク配列
+    sortableTasks: {
+      get() {
+        return this.filteredTasks;
+      },
+      set() {},
+    },
   },
   created() {
     this.fetchTasks();
@@ -250,7 +289,18 @@ export default {
     addTask() {
       if (!this.newTask.title.trim()) return;
 
-      TaskService.createTask(this.newTask)
+      // 最小の順序値を設定（新しいタスクを一番上に表示）
+      const minOrder =
+        this.tasks.length > 0
+          ? Math.min(...this.tasks.map((t) => t.order)) - 1
+          : 0;
+
+      const taskWithOrder = {
+        ...this.newTask,
+        order: minOrder,
+      };
+
+      TaskService.createTask(taskWithOrder)
         .then((response) => {
           this.tasks.unshift(response.data);
           this.newTask.title = "";
@@ -340,6 +390,41 @@ export default {
         })
         .catch((error) => {
           console.error("タスクの削除中にエラーが発生しました:", error);
+        });
+    },
+
+    // ドラッグ&ドロップ完了時の処理
+    onDragEnd() {
+      // フィルターが適用されている場合は並べ替えをスキップ
+      if (
+        this.filter !== "all" ||
+        this.priorityFilter.length > 0 ||
+        this.dueDateFilter !== "all"
+      ) {
+        return;
+      }
+
+      // 新しい順序を計算
+      const taskOrders = this.sortableTasks.map((task, index) => ({
+        id: task.id,
+        order: index,
+      }));
+
+      // バックエンドに順序更新を送信
+      TaskService.reorderTasks(taskOrders)
+        .then(() => {
+          // 成功したら、メモリ内のtasks配列も更新
+          const tasksMap = new Map();
+          this.sortableTasks.forEach((task, index) => {
+            tasksMap.set(task.id, { ...task, order: index });
+          });
+
+          this.tasks = this.tasks.map((task) =>
+            tasksMap.has(task.id) ? tasksMap.get(task.id) : task
+          );
+        })
+        .catch((error) => {
+          console.error("タスクの並べ替え中にエラーが発生しました:", error);
         });
     },
   },

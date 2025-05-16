@@ -39,4 +39,9 @@ export default {
       completed: status,
     });
   },
+
+  // タスクの並べ替え
+  reorderTasks(taskOrders) {
+    return axios.post(`${API_URL}tasks/reorder/`, { task_orders: taskOrders });
+  },
 };

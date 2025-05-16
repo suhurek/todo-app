@@ -5,6 +5,7 @@
     class="mb-3"
   >
     <template v-slot:prepend>
+      <slot name="prepend"></slot>
       <v-checkbox
         v-model="localCompleted"
         @change="toggleComplete"

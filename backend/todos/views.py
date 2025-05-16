@@ -29,6 +29,16 @@ class TaskViewSet(viewsets.ModelViewSet):
             response_data['next_task'] = new_task_serializer.data
             
         return Response(response_data)
+    
+    @action(detail=False, methods=['post'])
+    def reorder(self, request):
+        task_orders = request.data.get('task_orders', [])
+        for task_order in task_orders:
+            task_id = task_order.get('id')
+            new_order = task_order.get('order')
+            if task_id and new_order is not None:
+                Task.objects.filter(id=task_id).update(order=new_order)
+        return Response({'status': 'success'})
 
 class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all().order_by('name')

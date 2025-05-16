@@ -56,6 +56,10 @@ class Task(models.Model):
         blank=True,
         related_name='recurring_tasks'
     )
+    order = models.IntegerField(default=0)
+    
+    class Meta:
+        ordering = ['order', '-created_at']
     
     def __str__(self):
         return self.title
