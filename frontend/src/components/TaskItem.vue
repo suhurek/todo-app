@@ -1,6 +1,10 @@
 <template>
   <v-list-item
-    :class="task.completed ? 'bg-grey-lighten-3' : ''"
+    :class="{
+      'bg-grey-lighten-3': task.completed,
+      'task-completing': isCompleting,
+      'task-item-transition': true,
+    }"
     rounded="lg"
     class="mb-3"
   >
@@ -92,6 +96,16 @@
         <v-icon>mdi-delete</v-icon>
       </v-btn>
     </template>
+
+    <!-- 完了時のコンフェッティエフェクト -->
+    <div v-if="showConfetti" class="confetti-container">
+      <div
+        v-for="n in 30"
+        :key="n"
+        class="confetti-item"
+        :style="getConfettiStyle(n)"
+      ></div>
+    </div>
   </v-list-item>
 </template>
 
@@ -110,6 +124,8 @@ export default {
   data() {
     return {
       localCompleted: this.task.completed,
+      isCompleting: false,
+      showConfetti: false,
     };
   },
   computed: {
@@ -186,11 +202,93 @@ export default {
   },
   methods: {
     toggleComplete() {
-      this.$emit("toggle-complete", {
-        id: this.task.id,
-        completed: this.localCompleted,
-      });
+      if (!this.localCompleted) {
+        // 未完了に戻す場合は即時反映
+        this.$emit("toggle-complete", {
+          id: this.task.id,
+          completed: this.localCompleted,
+        });
+        return;
+      }
+
+      // タスク完了時のアニメーション
+      this.isCompleting = true;
+      this.showConfetti = true;
+
+      // アニメーション完了後にイベント発火
+      setTimeout(() => {
+        this.$emit("toggle-complete", {
+          id: this.task.id,
+          completed: this.localCompleted,
+        });
+
+        // アニメーション状態をリセット
+        setTimeout(() => {
+          this.isCompleting = false;
+          this.showConfetti = false;
+        }, 300);
+      }, 600);
+    },
+
+    // コンフェッティのランダムスタイルを生成
+    getConfettiStyle(index) {
+      const colors = ["#1565C0", "#4CAF50", "#FFC107", "#E91E63", "#9C27B0"];
+      const size = Math.floor(Math.random() * 8) + 5; // 5px-12px
+      const left = Math.floor(Math.random() * 100); // 0-100%
+      const animDuration = Math.random() * 2 + 1; // 1-3秒
+      const animDelay = Math.random() * 0.5; // 0-0.5秒
+
+      return {
+        backgroundColor: colors[index % colors.length],
+        width: `${size}px`,
+        height: `${size}px`,
+        left: `${left}%`,
+        animationDuration: `${animDuration}s`,
+        animationDelay: `${animDelay}s`,
+      };
     },
   },
 };
 </script>
+
+<style scoped>
+/* タスク完了時のアニメーション */
+.task-item-transition {
+  transition: all 0.3s ease;
+}
+
+.task-completing {
+  background-color: rgba(76, 175, 80, 0.15) !important;
+  transform: translateX(10px);
+}
+
+/* コンフェッティアニメーション */
+.confetti-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 1;
+}
+
+.confetti-item {
+  position: absolute;
+  top: 0;
+  border-radius: 50%;
+  animation: confetti-fall linear forwards;
+}
+
+@keyframes confetti-fall {
+  0% {
+    transform: translateY(0) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(100px) rotate(720deg);
+    opacity: 0;
+  }
+}
+</style>
