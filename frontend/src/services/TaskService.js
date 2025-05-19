@@ -44,4 +44,9 @@ export default {
   reorderTasks(taskOrders) {
     return axios.post(`${API_URL}tasks/reorder/`, { task_orders: taskOrders });
   },
+
+  // タスク統計情報を取得
+  getTaskStatistics() {
+    return axios.get(`${API_URL}tasks/statistics/`);
+  },
 };

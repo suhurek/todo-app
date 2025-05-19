@@ -1,22 +1,32 @@
 <template>
   <v-app :theme="theme">
-    <v-app-bar flat>
-      <v-container>
-        <v-row>
-          <v-col cols="12" class="d-flex align-center">
-            <v-spacer></v-spacer>
-            <v-btn icon @click="toggleTheme">
-              <v-icon>{{
-                theme === "light" ? "mdi-weather-night" : "mdi-weather-sunny"
-              }}</v-icon>
-            </v-btn>
-          </v-col>
-        </v-row>
-      </v-container>
+    <v-app-bar app>
+      <v-toolbar-title>タスク管理アプリ</v-toolbar-title>
+      <v-spacer></v-spacer>
+
+      <!-- タブナビゲーション -->
+      <v-tabs v-model="activeTab">
+        <v-tab value="tasks">タスク一覧</v-tab>
+        <v-tab value="statistics">統計</v-tab>
+      </v-tabs>
+
+      <!-- ダークモード切り替えボタン -->
+      <v-btn icon @click="toggleTheme">
+        <v-icon>{{
+          theme === "light" ? "mdi-weather-night" : "mdi-weather-sunny"
+        }}</v-icon>
+      </v-btn>
     </v-app-bar>
+
     <v-main>
       <v-container>
-        <TaskList />
+        <!-- タブの内容を表示 -->
+        <div v-if="activeTab === 'tasks'">
+          <task-list />
+        </div>
+        <div v-else-if="activeTab === 'statistics'">
+          <task-statistics />
+        </div>
       </v-container>
     </v-main>
   </v-app>
@@ -24,15 +34,18 @@
 
 <script>
 import TaskList from "@/components/TaskList.vue";
+import TaskStatistics from "@/components/TaskStatistics.vue";
 
 export default {
   name: "App",
   components: {
     TaskList,
+    TaskStatistics,
   },
   data() {
     return {
       theme: localStorage.getItem("theme") || "light",
+      activeTab: "tasks",
     };
   },
   methods: {
@@ -42,7 +55,7 @@ export default {
     },
   },
   created() {
-    // システム設定からダークモード検出
+    // システム設定からダークモード検出（オプション）
     if (!localStorage.getItem("theme")) {
       const prefersDark =
         window.matchMedia &&
@@ -53,17 +66,3 @@ export default {
   },
 };
 </script>
-
-<style>
-/* 基本スタイルはVuetifyによって上書きされますが、カスタムスタイルは残せます */
-#app {
-  font-family: "Avenir", Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-/* ダークモード固有のスタイル追加（必要な場合） */
-.v-theme--dark #app {
-  color: #f5f5f5;
-}
-</style>
